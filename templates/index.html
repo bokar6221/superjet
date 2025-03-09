@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>سوبر جيت اسم له تاريخ</title>
+  <!-- تحميل الخطوط المطلوبة -->
+  <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* تنسيق عام */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #f7f7f7;
+      font-family: 'Tajawal', sans-serif;
+    }
+    /* قسم الرأس مع خلفية الصورة */
+    .header {
+      width: 100%;
+      height: 25vh; /* ربع الصفحة تقريباً */
+      background: url('/static/header.jpg') no-repeat center center;
+      background-size: cover;
+      display: flex;
+      justify-content: flex-start; /* وضع المحتوى على اليسار */
+      align-items: center;
+      padding-left: 20px; /* مسافة من اليسار */
+    }
+    /* الشعار داخل قسم الرأس */
+    .logo img {
+      width: 150px; /* حجم الشعار */
+      height: auto;
+    }
+    /* المنطقة الرئيسية */
+    .main-content {
+      display: flex;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    /* مربع بيانات الحجز */
+    .booking-box {
+      width: 45%;
+      background: #fff;
+      border: 3px solid #ccc;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    .booking-box h2 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      text-align: center;
+      color: #2c3e50;
+    }
+    .booking-box label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .booking-box select,
+    .booking-box input[type="date"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+    }
+    .booking-box button {
+      display: block;
+      margin: 0 auto;
+      background: #2ecc71;
+      color: #fff;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .booking-box button:hover {
+      background: #27ae60;
+    }
+    /* صورة الأتوبيس السفلية */
+    .bus-image {
+      width: 45%;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bus-image img {
+      max-width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- قسم الرأس مع خلفية الصورة -->
+  <div class="header">
+    <!-- الشعار يظهر في الجانب الأيسر -->
+    <div class="logo">
+      <img src="/static/super.jpg" alt="Super Jet Logo">
+    </div>
+  </div>
+
+  <!-- المنطقة الرئيسية -->
+  <div class="main-content">
+    <!-- مربع بيانات الحجز -->
+    <div class="booking-box">
+      <h2>احجز رحلتك الآن</h2>
+      <form action="/booking" method="GET">
+        <label>من مكتب:</label>
+        <select name="from_code" required>
+          {% for code, name in offices.items() %}
+            <option value="{{ code }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+        
+        <label>إلى مكتب:</label>
+        <select name="to_code" required>
+          {% for code, name in offices.items() %}
+            <option value="{{ code }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+        
+        <label>التاريخ:</label>
+        <input type="date" name="date" required>
+        
+        <button type="submit">ابحث عن الرحلات</button>
+      </form>
+    </div>
+
+    <!-- صورة الأتوبيس -->
+    <div class="bus-image">
+      <img src="/static/bus.jpg" alt="صورة الأتوبيس">
+    </div>
+  </div>
+
+</body>
+</html>

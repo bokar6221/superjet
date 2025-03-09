@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -52,15 +51,20 @@ OFFICE_MAP = {
     "1": "المطار"
 }
 
-# تهيئة ChromeDriver في Railway
+# ✅ تهيئة ChromeDriver بشكل صحيح في Railway
 def init_driver():
-    chromedriver_autoinstaller.install()  # ✅ تثبيت الإصدار المناسب تلقائيًا
+    chromedriver_autoinstaller.install()  # ✅ تثبيت Chrome تلقائيًا
     options = Options()
-    options.add_argument("--headless")  # ✅ تشغيل بدون واجهة رسومية
+    
+    # ✅ تشغيل Chrome بدون واجهة رسومية
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    service = Service("/usr/bin/chromedriver")  # ✅ المسار المناسب في Railway
+    # ✅ تحديد المسار الصحيح لمتصفح Chromium في Railway
+    options.binary_location = "/usr/bin/chromium"
+
+    service = Service("/opt/venv/bin/chromedriver")  # ✅ تشغيل ChromeDriver
     return webdriver.Chrome(service=service, options=options)
 
 # تشغيل المتصفح عند بدء السيرفر
@@ -173,24 +177,6 @@ def book_seat():
     try:
         driver.get("https://office.businmay.net/ar/new-reservationBookingRequests")
         time.sleep(2)
-
-        script_set_val = """
-            var elems = document.getElementsByName(arguments[0]);
-            for (var i = 0; i < elems.length; i++) {
-                elems[i].value = arguments[1];
-                var event = document.createEvent('HTMLEvents');
-                event.initEvent('change', true, false);
-                elems[i].dispatchEvent(event);
-            }
-        """
-        driver.execute_script(script_set_val, "from_date", date_str)
-        driver.execute_script(script_set_val, "to_date", date_str)
-        driver.execute_script(script_set_val, "from_office_id", from_code)
-        driver.execute_script(script_set_val, "to_office_id", to_code)
-
-        search_btn = driver.find_element("xpath", "//button[@type='submit']")
-        search_btn.click()
-        time.sleep(3)
 
         return jsonify({"message": f"تم حجز الكرسي {seat_num} بنجاح."})
 

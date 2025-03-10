@@ -100,11 +100,10 @@ def home():
     return render_template('index.html')
 
 if __name__ == '__main__':
-import time
-
-while True:
-    print("✅ التطبيق يعمل...")
-    time.sleep(10)  # إبقاء التطبيق نشطًا حتى لا يُقتل من قبل Railway
+    import time  # تأكد أن هذا السطر داخل `if` وليس خارجه
+    while True:
+        print("✅ التطبيق يعمل...")
+        time.sleep(10)  # إبقاء التطبيق نشطًا حتى لا يُقتل من قبل Railway
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

@@ -15,15 +15,22 @@ CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 # ✅ تهيئة `Selenium` لاستخدام `Chromium` في `Docker`
 def init_driver():
     options = Options()
-    options.binary_location = CHROMIUM_PATH  # تحديد موقع `Chromium`
-    options.add_argument("--headless")  # تشغيل بدون واجهة رسومية
+    
+    # ✅ تشغيل `Chromium` بدون واجهة رسومية لكن مع تفعيل `remote-debugging`
+    options.add_argument("--headless=new")  # استخدام الوضع الجديد لتجنب المشاكل
+    options.add_argument("--remote-debugging-port=9222")  # إضافة منفذ للتصحيح
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-blink-features=AutomationControlled")  # لمنع كشف Selenium
 
-    # تشغيل `ChromeDriver`
-    service = Service(CHROMEDRIVER_PATH)
+    # ✅ تحديد موقع `Chromium`
+    options.binary_location = "/usr/bin/chromium"
 
+    # ✅ تشغيل `ChromeDriver`
+    service = Service("/usr/bin/chromedriver")
+    
     return webdriver.Chrome(service=service, options=options)
+
 
 # ✅ تشغيل `Selenium` عند بدء السيرفر
 driver = init_driver()

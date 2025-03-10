@@ -52,6 +52,24 @@ init_driver()
 
 # ✅ تسجيل الدخول تلقائيًا عند بدء التشغيل
 def do_login():
+   import threading
+
+def keep_alive():
+    """محاولة إبقاء المتصفح نشطًا عن طريق إعادة تحميل الصفحة بشكل دوري."""
+    global driver
+    while True:
+        try:
+            if driver:
+                driver.get("https://office.businmay.net/")
+                print("🔄 تم تحديث الجلسة لمنع الإغلاق التلقائي.")
+            time.sleep(300)  # تحديث الجلسة كل 5 دقائق
+        except Exception as e:
+            print(f"⚠️ خطأ في `keep_alive()`: {str(e)}")
+
+# تشغيل `keep_alive` في Thread مستقل
+keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+keep_alive_thread.start()
+
     global driver
     try:
         if driver is None:

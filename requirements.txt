@@ -1,4 +1,4 @@
 Flask
 selenium
-chromedriver-autoinstaller
+
 gunicorn

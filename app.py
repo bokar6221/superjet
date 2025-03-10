@@ -54,18 +54,24 @@ def do_login():
         driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
         driver.execute_script("document.getElementById('password').value = '123';")
 
-        login_btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
-        )
-        login_btn.click()
-
+        # ✅ البحث عن زر تسجيل الدخول وإعادة المحاولة إذا كان `stale`
+        for _ in range(3):  # تجربة 3 مرات في حالة `stale`
+            try:
+                login_btn = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
+                )
+                login_btn.click()
+                break  # إذا نجح النقر، لا نحتاج لإعادة المحاولة
+            except selenium.common.exceptions.StaleElementReferenceException:
+                print("⚠️ الزر أصبح `stale`، إعادة المحاولة...")
+                time.sleep(1)  # انتظار ثانية ثم إعادة البحث عن الزر
+        
         time.sleep(3)  # ✅ انتظار تحميل الصفحة بعد تسجيل الدخول
         print("✅ تم تسجيل الدخول بنجاح!")
     except Exception as e:
         print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
         traceback.print_exc()
 
-# ✅ تنفيذ تسجيل الدخول عند بدء السيرفر
 do_login()
 
 @app.route('/')

@@ -13,14 +13,21 @@ from selenium.common.exceptions import InvalidSessionIdException, WebDriverExcep
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ✅ تهيئة المتصفح
-def init_driver():
-    global driver  # ✅ التأكد من تعريف `driver` كمتحول عالمي
+# ✅ متغير للتحكم في `Selenium`
+USE_SELENIUM = os.getenv("USE_SELENIUM", "true").lower() == "true"
 
+driver = None  # ✅ تعريف `driver` لتجنب أخطاء `NoneType`
+
+# ✅ تهيئة المتصفح عند الحاجة فقط
+def init_driver():
+    global driver
+    if not USE_SELENIUM:
+        print("⚠️ Selenium معطل عبر البيئة، لن يتم تشغيل `init_driver()`")
+        return
+    
     try:
-        if 'driver' in globals() and driver is not None:
+        if driver:
             driver.quit()
-            driver = None
 
         options = Options()
         options.add_argument("--headless")
@@ -31,7 +38,6 @@ def init_driver():
         options.add_argument("--disable-features=VizDisplayCompositor")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--window-size=1280,1024")
-        options.add_argument("--remote-debugging-port=9222")
         options.binary_location = "/usr/bin/chromium"
 
         service = Service("/usr/bin/chromedriver")
@@ -43,21 +49,21 @@ def init_driver():
         driver = None
         traceback.print_exc()
 
-# ✅ تشغيل المتصفح عند بدء السيرفر
-init_driver()
+# ✅ تشغيل `Selenium` فقط إذا كان مفعّلًا
+if USE_SELENIUM:
+    init_driver()
 
-# ✅ تسجيل الدخول تلقائيًا عند بدء التشغيل
+# ✅ تسجيل الدخول
 def do_login():
-    global driver  # ✅ يجب أن يكون داخل الدالة مع تراجع صحيح
+    global driver
+    if driver is None:
+        print("⚠️ `driver` غير مهيأ، إعادة تشغيل `init_driver()`...")
+        init_driver()
+        if driver is None:
+            print("❌ فشل تشغيل `ChromeDriver`")
+            return  
 
     try:
-        if driver is None:
-            print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `init_driver()`...")
-            init_driver()
-            if driver is None:
-                print("❌ فشل تشغيل `ChromeDriver`، لن يتم تنفيذ `do_login()`")
-                return  
-
         driver.get("https://office.businmay.net/")
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "office_code")))
 
@@ -66,37 +72,27 @@ def do_login():
         driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
         driver.execute_script("document.getElementById('password').value = '123';")
 
-        for _ in range(5):  
-            try:
-                login_btn = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
-                )
-                time.sleep(1)
-                login_btn.click()
-                break  
-            except Exception as e:
-                print(f"⚠️ إعادة محاولة النقر على الزر: {e}")
-                time.sleep(2)
-
+        login_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
+        )
+        time.sleep(1)
+        login_btn.click()
         time.sleep(3)
+
         print("✅ تم تسجيل الدخول بنجاح!")
 
-    except InvalidSessionIdException:
-        print("⚠️ الجلسة غير صالحة، إعادة تشغيل `ChromeDriver`...")
+    except (InvalidSessionIdException, WebDriverException) as e:
+        print(f"⚠️ إعادة تشغيل `Selenium` بسبب الخطأ: {e}")
         init_driver()
         do_login()
-
-    except WebDriverException as e:
-        print(f"❌ خطأ في `WebDriver`: {str(e)}")
-        traceback.print_exc()
 
     except Exception as e:
         print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
         traceback.print_exc()
 
-# ✅ تشغيل تسجيل الدخول في `Thread` منفصل
-selenium_thread = threading.Thread(target=do_login)
-selenium_thread.start()
+# ✅ تشغيل تسجيل الدخول فقط عند الحاجة
+if USE_SELENIUM:
+    threading.Thread(target=do_login).start()
 
 # ✅ تشغيل الموقع
 @app.route('/')

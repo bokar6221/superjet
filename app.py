@@ -35,22 +35,30 @@ def init_driver():
 # ✅ تشغيل `Selenium` عند بدء السيرفر
 driver = init_driver()
 
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 def do_login():
-    """تنفيذ تسجيل الدخول تلقائيًا عند بدء التشغيل."""
+    """تنفيذ تسجيل الدخول تلقائيًا بعد التأكد من تحميل الصفحة."""
     try:
         driver.get("https://office.businmay.net/")
-        time.sleep(2)  # انتظار تحميل الصفحة
+
+        # ✅ الانتظار حتى يظهر العنصر قبل محاولة التفاعل معه
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "office_code")))
 
         driver.execute_script("document.getElementById('office_code').value = '7';")
         driver.execute_script("onCodeChanged('office_id', '7');")
         driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
         driver.execute_script("document.getElementById('password').value = '123';")
 
-        login_btn = driver.find_element("xpath", "//button[text()='تسجيل دخول']")
+        login_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
+        )
         login_btn.click()
 
-        time.sleep(3)  # انتظار التحميل بعد تسجيل الدخول
-        print("✓ تم تسجيل الدخول بنجاح")
+        time.sleep(3)  # ✅ انتظار تحميل الصفحة بعد تسجيل الدخول
+        print("✅ تم تسجيل الدخول بنجاح!")
     except Exception as e:
         print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
         traceback.print_exc()

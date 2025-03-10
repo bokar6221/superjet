@@ -10,14 +10,10 @@ from selenium.webdriver.chrome.options import Options
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # ✅ تثبيت Chromium و ChromeDriver يدويًا عند تشغيل التطبيق
-def install_chrome():
-    subprocess.run("apt update && apt install -y chromium-browser chromium-chromedriver", shell=True, check=True)
-
-install_chrome()
 
 # ✅ تعيين المسارات الصحيحة لـ Chromium و ChromeDriver في Railway
-CHROMIUM_PATH = "/usr/bin/chromium-browser"
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
+CHROMIUM_PATH = "/nix/store/...-chromium/bin/chromium"
+CHROMEDRIVER_PATH = "/nix/store/...-chromedriver/bin/chromedriver"
 
 # ✅ تهيئة `Selenium` لاستخدام `Chromium`
 def init_driver():

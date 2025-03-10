@@ -18,9 +18,9 @@ if USE_SELENIUM:
     from selenium.webdriver.support import expected_conditions as EC
 
 driver = None  # ✅ تعريف المتغير `driver` في النطاق العام
-
 def init_driver():
-    global driver  # ✅ جعل `driver` متاحًا في جميع الدوال
+    global driver  # ✅ تعريف `driver` كمتحول عالمي داخل `init_driver()`
+    
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
@@ -31,21 +31,12 @@ def init_driver():
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1280,1024")
     options.add_argument("--remote-debugging-port=9222")
+    
     options.binary_location = "/usr/bin/chromium"
     service = Service("/usr/bin/chromedriver")
     
     driver = webdriver.Chrome(service=service, options=options)  # ✅ حفظ `driver` كمتحول عالمي
 
-def start_driver():
-    global driver  # ✅ استخدام `driver` في `start_driver()`
-    init_driver()
-
-    def do_login():
-    global driver  # ✅ تعريف `driver` كمتحول عالمي داخل `do_login()`
-    try:
-        if driver is None:
-            print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `start_driver()`...")
-            start_driver()
 
         driver.get("https://office.businmay.net/")
 

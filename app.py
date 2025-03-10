@@ -17,71 +17,62 @@ if USE_SELENIUM:
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
 
-    def init_driver():
-        options = Options()
-        options.add_argument("--headless=new")  # استخدام `headless` الجديد لتجنب الأعطال
-        options.add_argument("--no-sandbox")  # تعطيل `sandbox` لمنع الأعطال
-        options.add_argument("--disable-dev-shm-usage")  # استخدام التخزين الفعلي بدلاً من `/dev/shm`
-        options.add_argument("--disable-gpu")  # تعطيل `GPU` لتجنب الأعطال
-        options.add_argument("--disable-software-rasterizer")  # تعطيل معالجة `GPU`
-        options.add_argument("--disable-features=VizDisplayCompositor")  # منع العمليات غير المدعومة
-        options.add_argument("--disable-blink-features=AutomationControlled")  # إخفاء Selenium عن مواقع الويب
-        options.add_argument("--window-size=1280,1024")  # ضبط حجم النافذة الافتراضي
-        options.add_argument("--remote-debugging-port=9222")  # إتاحة التصحيح في الخلفية
-        options.add_argument("--single-process")  # تشغيل `Chrome` كعملية واحدة لتقليل استهلاك الموارد
-        options.add_argument("--no-zygote")  # تعطيل عمليات `Zygote` التي تستهلك موارد كبيرة
-        options.add_argument("--disable-crash-reporter")  # تعطيل إرسال تقارير الأعطال
-        options.add_argument("--disable-extensions")  # تعطيل الإضافات لتسريع التحميل
-        options.add_argument("--disable-background-networking")  # تقليل تحميل الشبكة
-        options.add_argument("--disable-background-timer-throttling")  # تقليل تحميل النظام
+driver = None  # ✅ تعريف المتغير `driver` في النطاق العام
 
-        # ✅ تحديد موقع `Chromium`
-        options.binary_location = "/usr/bin/chromium"
+def init_driver():
+    global driver  # ✅ جعل `driver` متاحًا في جميع الدوال
+    options = Options()
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--disable-features=VizDisplayCompositor")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--window-size=1280,1024")
+    options.add_argument("--remote-debugging-port=9222")
+    options.binary_location = "/usr/bin/chromium"
+    service = Service("/usr/bin/chromedriver")
+    
+    driver = webdriver.Chrome(service=service, options=options)  # ✅ حفظ `driver` كمتحول عالمي
 
-        # ✅ تشغيل `ChromeDriver`
-        service = Service("/usr/bin/chromedriver")
-
-        return webdriver.Chrome(service=service, options=options)
-
-    def start_driver():
-        global driver
-        driver = init_driver()
-
-    # ✅ تشغيل `Selenium` في `Thread` مستقل لمنع التعارض مع `Gunicorn`
-    selenium_thread = threading.Thread(target=start_driver)
-    selenium_thread.start()
+def start_driver():
+    global driver  # ✅ استخدام `driver` في `start_driver()`
+    init_driver()
 
     def do_login():
-        """تنفيذ تسجيل الدخول تلقائيًا بعد التأكد من تحميل الصفحة."""
-        try:
-            driver.get("https://office.businmay.net/")
+    global driver  # ✅ تعريف `driver` كمتحول عالمي داخل `do_login()`
+    try:
+        if driver is None:
+            print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `start_driver()`...")
+            start_driver()
 
-            # ✅ الانتظار حتى يظهر العنصر قبل محاولة التفاعل معه
-            WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "office_code")))
+        driver.get("https://office.businmay.net/")
 
-            driver.execute_script("document.getElementById('office_code').value = '7';")
-            driver.execute_script("onCodeChanged('office_id', '7');")
-            driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
-            driver.execute_script("document.getElementById('password').value = '123';")
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "office_code")))
 
-            # ✅ البحث عن زر تسجيل الدخول وإعادة المحاولة إذا كان `stale`
-            for _ in range(5):  # تجربة 5 مرات في حالة `stale` أو `tab crashed`
-                try:
-                    login_btn = WebDriverWait(driver, 10).until(
-                        EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
-                    )
-                    time.sleep(1)  # ✅ الانتظار لضمان تحميل العنصر بالكامل
-                    login_btn.click()
-                    break  # إذا نجح النقر، لا نحتاج لإعادة المحاولة
-                except Exception as e:
-                    print(f"⚠️ إعادة محاولة النقر على الزر: {e}")
-                    time.sleep(2)  # ✅ انتظار أطول لمحاولة تحميل العنصر مجددًا
+        driver.execute_script("document.getElementById('office_code').value = '7';")
+        driver.execute_script("onCodeChanged('office_id', '7');")
+        driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
+        driver.execute_script("document.getElementById('password').value = '123';")
+
+        for _ in range(5):
+            try:
+                login_btn = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
+                )
+                time.sleep(1)
+                login_btn.click()
+                break  
+            except Exception as e:
+                print(f"⚠️ إعادة محاولة النقر على الزر: {e}")
+                time.sleep(2)
         
-            time.sleep(3)  # ✅ انتظار تحميل الصفحة بعد تسجيل الدخول
-            print("✅ تم تسجيل الدخول بنجاح!")
-        except Exception as e:
-            print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
-            traceback.print_exc()
+        time.sleep(3)
+        print("✅ تم تسجيل الدخول بنجاح!")
+    except Exception as e:
+        print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
+        traceback.print_exc()
 
     # ✅ تنفيذ تسجيل الدخول عند بدء السيرفر
     selenium_thread = threading.Thread(target=do_login)

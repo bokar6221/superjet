@@ -1,3 +1,3 @@
 [phases.setup]
-nixPkgs = ["python310", "chromium", "chromedriver", "python310Packages.setuptools", "python310Packages.pip"]
-cmds = ["python3 -m ensurepip", "python3 -m pip install --upgrade pip", "python3 -m pip install -r requirements.txt"]
+nixPkgs = ["python310", "chromium", "chromedriver", "python310Packages.pip"]
+cmds = ["python3 -m pip install --upgrade pip", "python3 -m pip install -r requirements.txt"]

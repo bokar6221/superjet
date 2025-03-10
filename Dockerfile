@@ -1,5 +1,5 @@
 # استخدم صورة Python الرسمية
-FROM python:3.8
+FROM python:3.10
 
 # تثبيت Chrome و ChromeDriver
 RUN apt-get update && apt-get install -y chromium chromium-driver

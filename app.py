@@ -52,7 +52,7 @@ def do_login():
         driver.get("https://office.businmay.net/")
 
         # ✅ الانتظار حتى يظهر العنصر قبل محاولة التفاعل معه
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "office_code")))
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "office_code")))
 
         driver.execute_script("document.getElementById('office_code').value = '7';")
         driver.execute_script("onCodeChanged('office_id', '7');")
@@ -60,16 +60,20 @@ def do_login():
         driver.execute_script("document.getElementById('password').value = '123';")
 
         # ✅ البحث عن زر تسجيل الدخول وإعادة المحاولة إذا كان `stale`
-        for _ in range(3):  # تجربة 3 مرات في حالة `stale`
+        for _ in range(5):  # تجربة 5 مرات في حالة `stale` أو `tab crashed`
             try:
                 login_btn = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
                 )
+                time.sleep(1)  # ✅ الانتظار لضمان تحميل العنصر بالكامل
                 login_btn.click()
                 break  # إذا نجح النقر، لا نحتاج لإعادة المحاولة
             except selenium.common.exceptions.StaleElementReferenceException:
                 print("⚠️ الزر أصبح `stale`، إعادة المحاولة...")
-                time.sleep(1)  # انتظار ثانية ثم إعادة البحث عن الزر
+                time.sleep(2)  # ✅ انتظار أطول لمحاولة تحميل العنصر مجددًا
+            except selenium.common.exceptions.WebDriverException as e:
+                print(f"❌ حدث خطأ أثناء النقر: {e}")
+                time.sleep(2)  # ✅ إعادة المحاولة بعد التأكد من استقرار `ChromeDriver`
         
         time.sleep(3)  # ✅ انتظار تحميل الصفحة بعد تسجيل الدخول
         print("✅ تم تسجيل الدخول بنجاح!")

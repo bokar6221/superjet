@@ -15,21 +15,25 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 CHROMIUM_PATH = "/usr/bin/chromium"
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
-import threading
-
 def init_driver():
     options = Options()
 
     # ✅ تحسين استقرار Chrome في بيئة محدودة الموارد
-    options.add_argument("--headless=new")  # استخدام `headless` الجديد لتجنب المشاكل
+    options.add_argument("--headless=new")  # استخدام `headless` الجديد
     options.add_argument("--no-sandbox")  # تعطيل `sandbox` لمنع الأعطال
-    options.add_argument("--disable-dev-shm-usage")  # منع استخدام `/dev/shm`
-    options.add_argument("--disable-gpu")  # تعطيل `GPU` لتجنب الأعطال في `Docker`
+    options.add_argument("--disable-dev-shm-usage")  # استخدام التخزين الفعلي بدلاً من `/dev/shm`
+    options.add_argument("--disable-gpu")  # تعطيل `GPU` لتجنب الأعطال
     options.add_argument("--disable-software-rasterizer")  # تعطيل معالجة `GPU`
-    options.add_argument("--disable-features=VizDisplayCompositor")  # منع بعض العمليات غير المدعومة
+    options.add_argument("--disable-features=VizDisplayCompositor")  # منع العمليات غير المدعومة
     options.add_argument("--disable-blink-features=AutomationControlled")  # إخفاء Selenium عن مواقع الويب
     options.add_argument("--window-size=1280,1024")  # ضبط حجم النافذة الافتراضي
     options.add_argument("--remote-debugging-port=9222")  # إتاحة التصحيح في الخلفية
+    options.add_argument("--single-process")  # تشغيل `Chrome` كعملية واحدة لتقليل استهلاك الموارد
+    options.add_argument("--no-zygote")  # تعطيل عمليات `Zygote` التي تستهلك موارد كبيرة
+    options.add_argument("--disable-crash-reporter")  # تعطيل إرسال تقارير الأعطال لتقليل استهلاك الذاكرة
+    options.add_argument("--disable-extensions")  # تعطيل الإضافات لتسريع التحميل
+    options.add_argument("--disable-background-networking")  # تقليل تحميل الشبكة
+    options.add_argument("--disable-background-timer-throttling")  # تقليل تحميل النظام
 
     # ✅ تحديد موقع `Chromium`
     options.binary_location = "/usr/bin/chromium"
@@ -38,15 +42,6 @@ def init_driver():
     service = Service("/usr/bin/chromedriver")
 
     return webdriver.Chrome(service=service, options=options)
-
-# ✅ تشغيل `Selenium` في `Thread` مستقل لمنع التعارض مع `Gunicorn`
-def start_driver():
-    global driver
-    driver = init_driver()
-
-selenium_thread = threading.Thread(target=start_driver)
-selenium_thread.start()
-
 
 driver = init_driver()
 

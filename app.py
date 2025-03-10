@@ -1,32 +1,32 @@
+import os
+import time
+import traceback
 from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-import os
-import time
-import traceback
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ✅ ضبط متغيرات البيئة لاستخدام Chromium في Railway
-CHROMIUM_PATH = "/usr/bin/chromium"
+# ✅ تعيين المسارات الصحيحة لـ Chromium و ChromeDriver في Railway
+CHROMIUM_PATH = "/usr/bin/chromium-browser"  # تم التعديل
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
-# ✅ تهيئة ChromeDriver بشكل صحيح في Railway
+# ✅ تهيئة `Selenium` لاستخدام `Chromium`
 def init_driver():
     options = Options()
-    
+
     # ✅ تشغيل بدون واجهة رسومية
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    # ✅ تحديد المسار الصحيح لمتصفح Chromium في Railway
+    # ✅ تحديد موقع `Chromium`
     options.binary_location = CHROMIUM_PATH
 
-    # ✅ تشغيل ChromeDriver مباشرة من النظام
+    # ✅ تشغيل `ChromeDriver`
     service = Service(CHROMEDRIVER_PATH)
-    
+
     return webdriver.Chrome(service=service, options=options)
 
 # تشغيل المتصفح عند بدء السيرفر
@@ -38,10 +38,10 @@ def do_login():
         driver.get("https://office.businmay.net/")
         time.sleep(2)  # انتظار تحميل الصفحة
 
-        driver.execute_script(f"document.getElementById('office_code').value = '7';")
-        driver.execute_script(f"onCodeChanged('office_id', '7');")
-        driver.execute_script(f"document.getElementById('email').value = 'mahmod.h';")
-        driver.execute_script(f"document.getElementById('password').value = '123';")
+        driver.execute_script("document.getElementById('office_code').value = '7';")
+        driver.execute_script("onCodeChanged('office_id', '7');")
+        driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
+        driver.execute_script("document.getElementById('password').value = '123';")
 
         login_btn = driver.find_element("xpath", "//button[text()='تسجيل دخول']")
         login_btn.click()

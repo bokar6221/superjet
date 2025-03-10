@@ -43,6 +43,8 @@ def init_driver():
         options.binary_location = CHROMIUM_PATH
 
         service = Service(CHROMEDRIVER_PATH)
+       options.add_argument("--disable-software-rasterizer")
+
         driver = webdriver.Chrome(service=service, options=options)
         print("✅ تم تشغيل ChromeDriver بنجاح!")
 

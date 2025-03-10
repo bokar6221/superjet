@@ -11,31 +11,34 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import InvalidSessionIdException, WebDriverException, SessionNotCreatedException
 
+# ✅ تهيئة التطبيق
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # ✅ ضبط بيئة تشغيل ChromeDriver
 CHROMIUM_PATH = "/usr/bin/chromium"
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
+# ✅ إنشاء `driver` عند الطلب فقط
+driver = None
+
 # ✅ تهيئة ChromeDriver
 def init_driver():
     global driver
     try:
-        if 'driver' in globals() and driver is not None:
+        if driver:
             driver.quit()
-            driver = None
 
         options = Options()
-        options.add_argument("--headless=new")  
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--disable-software-rasterizer")
         options.add_argument("--disable-features=VizDisplayCompositor")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--window-size=1280,1024")
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-infobars")
+        options.add_argument("--window-size=1280,1024")
         options.add_argument("--remote-debugging-port=9222")
         options.binary_location = CHROMIUM_PATH
 
@@ -53,19 +56,22 @@ def init_driver():
         driver = None
         traceback.print_exc()
 
-# ✅ تشغيل ChromeDriver عند بدء السيرفر
-init_driver()
+# ✅ تشغيل `ChromeDriver` عند الحاجة فقط
+def get_driver():
+    global driver
+    if driver is None:
+        print("🔄 تشغيل `ChromeDriver`...")
+        init_driver()
+    return driver
 
 # ✅ تسجيل الدخول تلقائيًا عند بدء التشغيل
 def do_login():
     global driver
     try:
+        driver = get_driver()
         if driver is None:
-            print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `init_driver()`...")
-            init_driver()
-            if driver is None:
-                print("❌ فشل تشغيل `ChromeDriver`، لن يتم تنفيذ `do_login()`")
-                return  
+            print("❌ لم يتم تشغيل `ChromeDriver`، لن يتم تنفيذ `do_login()`")
+            return  
 
         driver.get("https://office.businmay.net/")
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, "office_code")))
@@ -103,7 +109,7 @@ def do_login():
         print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
         traceback.print_exc()
 
-# ✅ تشغيل `do_login()` في `Thread` منفصل لمنع تعطل التطبيق
+# ✅ تشغيل `do_login()` في `Thread` منفصل
 selenium_thread = threading.Thread(target=do_login)
 selenium_thread.start()
 
@@ -113,5 +119,5 @@ def home():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=True)

@@ -9,25 +9,21 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import InvalidSessionIdException, WebDriverException
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ✅ ضبط المسارات الصحيحة لمتصفح Chrome على `Railway`
-CHROMIUM_PATH = "/usr/bin/chromium"
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
-
-# ✅ تهيئة WebDriver بشكل صحيح
+# ✅ تهيئة المتصفح
 def init_driver():
-    global driver
+    global driver  # ✅ التأكد من تعريف `driver` كمتحول عالمي
+
     try:
         if 'driver' in globals() and driver is not None:
             driver.quit()
             driver = None
 
-        # 🚀 ضبط إعدادات المتصفح
         options = Options()
-        options.add_argument("--headless=new")  # ✅ تشغيل بدون واجهة رسومية
+        options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -35,10 +31,10 @@ def init_driver():
         options.add_argument("--disable-features=VizDisplayCompositor")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--window-size=1280,1024")
-        options.binary_location = CHROMIUM_PATH  # ✅ تعيين المسار الصحيح
+        options.add_argument("--remote-debugging-port=9222")
+        options.binary_location = "/usr/bin/chromium"
 
-        # 🚀 تشغيل ChromeDriver
-        service = Service(CHROMEDRIVER_PATH)
+        service = Service("/usr/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=options)
         print("✅ تم تشغيل ChromeDriver بنجاح!")
 
@@ -52,28 +48,11 @@ init_driver()
 
 # ✅ تسجيل الدخول تلقائيًا عند بدء التشغيل
 def do_login():
-   import threading
+    global driver  # ✅ يجب أن يكون داخل الدالة مع تراجع صحيح
 
-def keep_alive():
-    """محاولة إبقاء المتصفح نشطًا عن طريق إعادة تحميل الصفحة بشكل دوري."""
-    global driver
-    while True:
-        try:
-            if driver:
-                driver.get("https://office.businmay.net/")
-                print("🔄 تم تحديث الجلسة لمنع الإغلاق التلقائي.")
-            time.sleep(300)  # تحديث الجلسة كل 5 دقائق
-        except Exception as e:
-            print(f"⚠️ خطأ في `keep_alive()`: {str(e)}")
-
-# تشغيل `keep_alive` في Thread مستقل
-keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
-keep_alive_thread.start()
-
-    global driver
     try:
         if driver is None:
-            print("⚠️ `driver` غير موجود، إعادة تشغيل `init_driver()`...")
+            print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `init_driver()`...")
             init_driver()
             if driver is None:
                 print("❌ فشل تشغيل `ChromeDriver`، لن يتم تنفيذ `do_login()`")
@@ -87,14 +66,25 @@ keep_alive_thread.start()
         driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
         driver.execute_script("document.getElementById('password').value = '123';")
 
-        login_btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
-        )
-        time.sleep(1)
-        login_btn.click()
+        for _ in range(5):  
+            try:
+                login_btn = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
+                )
+                time.sleep(1)
+                login_btn.click()
+                break  
+            except Exception as e:
+                print(f"⚠️ إعادة محاولة النقر على الزر: {e}")
+                time.sleep(2)
 
         time.sleep(3)
         print("✅ تم تسجيل الدخول بنجاح!")
+
+    except InvalidSessionIdException:
+        print("⚠️ الجلسة غير صالحة، إعادة تشغيل `ChromeDriver`...")
+        init_driver()
+        do_login()
 
     except WebDriverException as e:
         print(f"❌ خطأ في `WebDriver`: {str(e)}")
@@ -114,5 +104,5 @@ def home():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8000))  # ✅ تأكد من أن `PORT` مضبوط بشكل صحيح
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

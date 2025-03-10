@@ -13,7 +13,11 @@ from selenium.common.exceptions import InvalidSessionIdException, WebDriverExcep
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ✅ تهيئة المتصفح
+# ✅ ضبط بيئة تشغيل ChromeDriver
+CHROMIUM_PATH = "/usr/bin/chromium"
+CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
+
+# ✅ تهيئة متصفح Chrome
 def init_driver():
     global driver
     try:
@@ -22,7 +26,7 @@ def init_driver():
             driver = None
 
         options = Options()
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -31,9 +35,9 @@ def init_driver():
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--window-size=1280,1024")
         options.add_argument("--remote-debugging-port=9222")
-        options.binary_location = "/usr/bin/chromium"
+        options.binary_location = CHROMIUM_PATH
 
-        service = Service("/usr/bin/chromedriver")
+        service = Service(CHROMEDRIVER_PATH)
         driver = webdriver.Chrome(service=service, options=options)
         print("✅ تم تشغيل ChromeDriver بنجاح!")
 
@@ -42,7 +46,7 @@ def init_driver():
         driver = None
         traceback.print_exc()
 
-# ✅ تشغيل المتصفح عند بدء السيرفر
+# ✅ تشغيل ChromeDriver عند بدء السيرفر
 init_driver()
 
 # ✅ تسجيل الدخول تلقائيًا عند بدء التشغيل
@@ -92,7 +96,7 @@ def do_login():
         print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
         traceback.print_exc()
 
-# ✅ تشغيل تسجيل الدخول في `Thread` منفصل
+# ✅ تشغيل `do_login()` في `Thread` منفصل لمنع تعطل التطبيق
 selenium_thread = threading.Thread(target=do_login)
 selenium_thread.start()
 

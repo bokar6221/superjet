@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 import traceback
 from flask import Flask, render_template, request, jsonify
@@ -8,8 +9,14 @@ from selenium.webdriver.chrome.options import Options
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
+# ✅ تثبيت Chromium و ChromeDriver يدويًا عند تشغيل التطبيق
+def install_chrome():
+    subprocess.run("apt update && apt install -y chromium-browser chromium-chromedriver", shell=True, check=True)
+
+install_chrome()
+
 # ✅ تعيين المسارات الصحيحة لـ Chromium و ChromeDriver في Railway
-CHROMIUM_PATH = "/usr/bin/chromium-browser"  # تم التعديل
+CHROMIUM_PATH = "/usr/bin/chromium-browser"
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
 # ✅ تهيئة `Selenium` لاستخدام `Chromium`
@@ -118,26 +125,6 @@ def get_booking_data():
                     })
 
         return jsonify({"times": times_data})
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
-
-@app.route('/api/book', methods=['POST'])
-def book_seat():
-    """تنفيذ حجز مقعد معين في الرحلة."""
-    data = request.get_json()
-    from_code = data.get("from_code")
-    to_code = data.get("to_code")
-    date_str = data.get("date")
-    time_str = data.get("time")
-    seat_num = data.get("seat")
-
-    try:
-        driver.get("https://office.businmay.net/ar/new-reservationBookingRequests")
-        time.sleep(2)
-
-        return jsonify({"message": f"تم حجز الكرسي {seat_num} بنجاح."})
 
     except Exception as e:
         traceback.print_exc()

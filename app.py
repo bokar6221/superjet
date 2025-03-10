@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import InvalidSessionIdException, WebDriverException
+from selenium.common.exceptions import InvalidSessionIdException, WebDriverException, SessionNotCreatedException
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -17,7 +17,7 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 CHROMIUM_PATH = "/usr/bin/chromium"
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
-# ✅ تهيئة متصفح Chrome
+# ✅ تهيئة ChromeDriver
 def init_driver():
     global driver
     try:
@@ -26,7 +26,7 @@ def init_driver():
             driver = None
 
         options = Options()
-        options.add_argument("--headless=new")
+        options.add_argument("--headless=new")  
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -34,12 +34,19 @@ def init_driver():
         options.add_argument("--disable-features=VizDisplayCompositor")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--window-size=1280,1024")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-infobars")
         options.add_argument("--remote-debugging-port=9222")
         options.binary_location = CHROMIUM_PATH
 
         service = Service(CHROMEDRIVER_PATH)
         driver = webdriver.Chrome(service=service, options=options)
         print("✅ تم تشغيل ChromeDriver بنجاح!")
+
+    except SessionNotCreatedException:
+        print("⚠️ لا يمكن إنشاء جلسة Chrome! سيتم إعادة المحاولة بعد 5 ثوانٍ...")
+        time.sleep(5)
+        init_driver()
 
     except Exception as e:
         print(f"❌ خطأ في تشغيل ChromeDriver: {str(e)}")

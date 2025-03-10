@@ -1,5 +1,4 @@
 import os
-import subprocess
 import time
 import traceback
 from flask import Flask, render_template, request, jsonify
@@ -9,34 +8,28 @@ from selenium.webdriver.chrome.options import Options
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# ✅ تثبيت Chromium و ChromeDriver يدويًا عند تشغيل التطبيق
+# ✅ ضبط متغيرات البيئة لـ `Chromium` و `ChromeDriver`
+CHROMIUM_PATH = "/usr/bin/chromium"
+CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
-# ✅ تعيين المسارات الصحيحة لـ Chromium و ChromeDriver في Railway
-CHROMIUM_PATH = "/nix/store/...-chromium/bin/chromium"
-CHROMEDRIVER_PATH = "/nix/store/...-chromedriver/bin/chromedriver"
-
-# ✅ تهيئة `Selenium` لاستخدام `Chromium`
+# ✅ تهيئة `Selenium` لاستخدام `Chromium` في `Docker`
 def init_driver():
     options = Options()
-
-    # ✅ تشغيل بدون واجهة رسومية
-    options.add_argument("--headless")
+    options.binary_location = CHROMIUM_PATH  # تحديد موقع `Chromium`
+    options.add_argument("--headless")  # تشغيل بدون واجهة رسومية
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    # ✅ تحديد موقع `Chromium`
-    options.binary_location = CHROMIUM_PATH
-
-    # ✅ تشغيل `ChromeDriver`
+    # تشغيل `ChromeDriver`
     service = Service(CHROMEDRIVER_PATH)
 
     return webdriver.Chrome(service=service, options=options)
 
-# تشغيل المتصفح عند بدء السيرفر
+# ✅ تشغيل `Selenium` عند بدء السيرفر
 driver = init_driver()
 
 def do_login():
-    """تنفيذ تسجيل الدخول تلقائيًا."""
+    """تنفيذ تسجيل الدخول تلقائيًا عند بدء التشغيل."""
     try:
         driver.get("https://office.businmay.net/")
         time.sleep(2)  # انتظار تحميل الصفحة
@@ -48,7 +41,7 @@ def do_login():
 
         login_btn = driver.find_element("xpath", "//button[text()='تسجيل دخول']")
         login_btn.click()
-        
+
         time.sleep(3)  # انتظار التحميل بعد تسجيل الدخول
         print("✓ تم تسجيل الدخول بنجاح")
     except Exception as e:
@@ -127,5 +120,5 @@ def get_booking_data():
         return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)

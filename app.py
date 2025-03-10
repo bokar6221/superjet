@@ -2,69 +2,31 @@ from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-import chromedriver_autoinstaller  # ✅ تثبيت Chrome تلقائيًا
 import os
 import time
 import traceback
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
-# بيانات تسجيل الدخول
-OFFICE_CODE = os.getenv("OFFICE_CODE", "7")
-EMAIL = os.getenv("EMAIL", "mahmod.h")
-PASSWORD = os.getenv("PASSWORD", "123")
-
-# بيانات المكاتب (كود -> اسم)
-OFFICE_MAP = {
-    "7": "محرم بك",
-    "171": "أسيوط",
-    "4": "الترجمان",
-    "6": "الجيزة",
-    "33": "السويس",
-    "18": "الغردقة",
-    "120": "المنيا",
-    "17": "بورسعيد",
-    "200": "دائري الجديد",
-    "174": "سفاجا",
-    "111": "سوهاج",
-    "19": "شرم - الرويسات",
-    "5": "عبدالمنعم رياض",
-    "188": "عدلي منصور",
-    "144": "مارينا ـ 2",
-    "29": "الأقصر",
-    "3": "رمسيس",
-    "151": "المنشية",
-    "214": "العالمين",
-    "126": "أسوان",
-    "219": "كوم أمبو",
-    "16": "مرسي مطروح",
-    "20": "ميامي",
-    "28": "نويبع",
-    "209": "أبو قرقاص",
-    "217": "ارمنت",
-    "218": "أسنا",
-    "145": "البلينا",
-    "216": "الطور",
-    "146": "برديس",
-    "178": "سمالوط",
-    "210": "قفط",
-    "1": "المطار"
-}
+# ✅ ضبط متغيرات البيئة لاستخدام Chromium في Railway
+CHROMIUM_PATH = "/usr/bin/chromium"
+CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
 # ✅ تهيئة ChromeDriver بشكل صحيح في Railway
 def init_driver():
-    chromedriver_autoinstaller.install()  # ✅ تثبيت Chrome تلقائيًا
     options = Options()
     
-    # ✅ تشغيل Chrome بدون واجهة رسومية
+    # ✅ تشغيل بدون واجهة رسومية
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
     # ✅ تحديد المسار الصحيح لمتصفح Chromium في Railway
-    options.binary_location = "/usr/bin/chromium"
+    options.binary_location = CHROMIUM_PATH
 
-    service = Service("/opt/venv/bin/chromedriver")  # ✅ تشغيل ChromeDriver
+    # ✅ تشغيل ChromeDriver مباشرة من النظام
+    service = Service(CHROMEDRIVER_PATH)
+    
     return webdriver.Chrome(service=service, options=options)
 
 # تشغيل المتصفح عند بدء السيرفر
@@ -76,10 +38,10 @@ def do_login():
         driver.get("https://office.businmay.net/")
         time.sleep(2)  # انتظار تحميل الصفحة
 
-        driver.execute_script(f"document.getElementById('office_code').value = '{OFFICE_CODE}';")
-        driver.execute_script(f"onCodeChanged('office_id', '{OFFICE_CODE}');")
-        driver.execute_script(f"document.getElementById('email').value = '{EMAIL}';")
-        driver.execute_script(f"document.getElementById('password').value = '{PASSWORD}';")
+        driver.execute_script(f"document.getElementById('office_code').value = '7';")
+        driver.execute_script(f"onCodeChanged('office_id', '7');")
+        driver.execute_script(f"document.getElementById('email').value = 'mahmod.h';")
+        driver.execute_script(f"document.getElementById('password').value = '123';")
 
         login_btn = driver.find_element("xpath", "//button[text()='تسجيل دخول']")
         login_btn.click()
@@ -95,7 +57,7 @@ do_login()
 
 @app.route('/')
 def home():
-    return render_template('index.html', offices=OFFICE_MAP)
+    return render_template('index.html')
 
 @app.route('/booking')
 def booking_page():
@@ -103,13 +65,10 @@ def booking_page():
     to_code = request.args.get('to_code')
     date_str = request.args.get('date')
 
-    from_office_name = OFFICE_MAP.get(from_code, from_code)
-    to_office_name = OFFICE_MAP.get(to_code, to_code)
-
     return render_template(
         'booking.html',
-        from_office=from_office_name,
-        to_office=to_office_name,
+        from_office=from_code,
+        to_office=to_code,
         date_str=date_str
     )
 

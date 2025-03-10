@@ -3,6 +3,7 @@ import time
 import threading
 import traceback
 from flask import Flask, render_template, request, jsonify
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # ✅ تعطيل Selenium عند الحاجة لتقليل استهلاك الموارد
@@ -19,46 +20,46 @@ if USE_SELENIUM:
     driver = None  # ✅ تعريف `driver` كمتحول عالمي
 
     def init_driver():
-        global driver  # ✅ جعل `driver` متاحًا في جميع الدوال
-
-        options = Options()
-        options.add_argument("--headless=new")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--disable-software-rasterizer")
-        options.add_argument("--disable-features=VizDisplayCompositor")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--window-size=1280,1024")
-        options.add_argument("--remote-debugging-port=9222")
-        options.add_argument("--single-process")
-        options.add_argument("--no-zygote")
-        options.add_argument("--disable-crash-reporter")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-background-networking")
-        options.add_argument("--disable-background-timer-throttling")
-
-        options.binary_location = "/usr/bin/chromium"
-        service = Service("/usr/bin/chromedriver")
-
-        driver = webdriver.Chrome(service=service, options=options)  # ✅ تشغيل `ChromeDriver`
-
-    def start_driver():
         global driver
-        if driver is None:
-            init_driver()
+        try:
+            if driver is not None:
+                driver.quit()  # ✅ إغلاق أي جلسة مفتوحة لتجنب `InvalidSessionIdException`
+                driver = None
 
-    # ✅ تشغيل `Selenium` في `Thread` مستقل لمنع التعارض مع `Gunicorn`
-    selenium_thread = threading.Thread(target=start_driver)
-    selenium_thread.start()
+            options = Options()
+            options.add_argument("--headless=new")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--disable-software-rasterizer")
+            options.add_argument("--disable-features=VizDisplayCompositor")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--window-size=1280,1024")
+            options.add_argument("--remote-debugging-port=9222")
+            options.add_argument("--single-process")
+            options.add_argument("--no-zygote")
+            options.add_argument("--disable-crash-reporter")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--disable-background-networking")
+            options.add_argument("--disable-background-timer-throttling")
+
+            options.binary_location = "/usr/bin/chromium"
+            service = Service("/usr/bin/chromedriver")
+
+            driver = webdriver.Chrome(service=service, options=options)
+            print("✅ تم تشغيل ChromeDriver بنجاح!")
+
+        except Exception as e:
+            print(f"❌ خطأ في تشغيل ChromeDriver: {str(e)}")
+            traceback.print_exc()
 
     def do_login():
         """تنفيذ تسجيل الدخول تلقائيًا بعد التأكد من تحميل الصفحة."""
         global driver  
         try:
             if driver is None:
-                print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `start_driver()`...")
-                start_driver()
+                print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `init_driver()`...")
+                init_driver()
 
             driver.get("https://office.businmay.net/")
 
@@ -83,11 +84,17 @@ if USE_SELENIUM:
             
             time.sleep(3)
             print("✅ تم تسجيل الدخول بنجاح!")
+
+        except selenium.common.exceptions.InvalidSessionIdException:
+            print("⚠️ الجلسة غير صالحة، إعادة تشغيل `ChromeDriver`...")
+            init_driver()
+            do_login()
+
         except Exception as e:
             print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
             traceback.print_exc()
 
-    # ✅ تنفيذ تسجيل الدخول عند بدء السيرفر
+    # ✅ تشغيل `Selenium` في `Thread` جديد عند الحاجة فقط
     selenium_thread = threading.Thread(target=do_login)
     selenium_thread.start()
 

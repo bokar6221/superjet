@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import InvalidSessionIdException, WebDriverException
+from selenium.common.exceptions import WebDriverException
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -21,14 +21,13 @@ CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 def init_driver():
     global driver
     try:
-        # 🚀 إغلاق الجلسة السابقة إن وجدت
         if 'driver' in globals() and driver is not None:
             driver.quit()
             driver = None
 
         # 🚀 ضبط إعدادات المتصفح
         options = Options()
-        options.add_argument("--headless=new")  # ✅ وضع التشغيل بدون واجهة رسومية
+        options.add_argument("--headless=new")  # ✅ تشغيل بدون واجهة رسومية
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -36,7 +35,6 @@ def init_driver():
         options.add_argument("--disable-features=VizDisplayCompositor")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--window-size=1280,1024")
-        options.add_argument("--remote-debugging-port=9222")
         options.binary_location = CHROMIUM_PATH  # ✅ تعيين المسار الصحيح
 
         # 🚀 تشغيل ChromeDriver
@@ -57,7 +55,7 @@ def do_login():
     global driver
     try:
         if driver is None:
-            print("⚠️ `driver` لم يتم تهيئته بعد، إعادة تشغيل `init_driver()`...")
+            print("⚠️ `driver` غير موجود، إعادة تشغيل `init_driver()`...")
             init_driver()
             if driver is None:
                 print("❌ فشل تشغيل `ChromeDriver`، لن يتم تنفيذ `do_login()`")
@@ -71,25 +69,14 @@ def do_login():
         driver.execute_script("document.getElementById('email').value = 'mahmod.h';")
         driver.execute_script("document.getElementById('password').value = '123';")
 
-        for _ in range(5):  
-            try:
-                login_btn = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
-                )
-                time.sleep(1)
-                login_btn.click()
-                break  
-            except Exception as e:
-                print(f"⚠️ إعادة محاولة النقر على الزر: {e}")
-                time.sleep(2)
+        login_btn = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[text()='تسجيل دخول']"))
+        )
+        time.sleep(1)
+        login_btn.click()
 
         time.sleep(3)
         print("✅ تم تسجيل الدخول بنجاح!")
-
-    except InvalidSessionIdException:
-        print("⚠️ الجلسة غير صالحة، إعادة تشغيل `ChromeDriver`...")
-        init_driver()
-        do_login()
 
     except WebDriverException as e:
         print(f"❌ خطأ في `WebDriver`: {str(e)}")

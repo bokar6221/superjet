@@ -15,21 +15,25 @@ CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 # ✅ تهيئة `Selenium` لاستخدام `Chromium` في `Docker`
 def init_driver():
     options = Options()
-    
-    # ✅ تشغيل `Chromium` بدون واجهة رسومية لكن مع تفعيل `remote-debugging`
-    options.add_argument("--headless=new")  # استخدام الوضع الجديد لتجنب المشاكل
-    options.add_argument("--remote-debugging-port=9222")  # إضافة منفذ للتصحيح
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-blink-features=AutomationControlled")  # لمنع كشف Selenium
+
+    # ✅ تشغيل `Chromium` بدون واجهة رسومية وتحسين الاستقرار
+    options.add_argument("--headless=new")  # استخدام `headless` الجديد
+    options.add_argument("--no-sandbox")  # تعطيل `sandbox` لتجنب الأعطال
+    options.add_argument("--disable-dev-shm-usage")  # منع استخدام `/dev/shm`
+    options.add_argument("--disable-gpu")  # تعطيل الـ GPU لأنه غير مدعوم في `Railway`
+    options.add_argument("--disable-software-rasterizer")  # منع مشاكل `GPU rasterizer`
+    options.add_argument("--disable-blink-features=AutomationControlled")  # إخفاء Selenium عن مواقع الويب
+    options.add_argument("--window-size=1920,1080")  # زيادة حجم النافذة لتجنب مشاكل التصميم
 
     # ✅ تحديد موقع `Chromium`
     options.binary_location = "/usr/bin/chromium"
 
     # ✅ تشغيل `ChromeDriver`
     service = Service("/usr/bin/chromedriver")
-    
+
     return webdriver.Chrome(service=service, options=options)
+
+driver = init_driver()
 
 
 # ✅ تشغيل `Selenium` عند بدء السيرفر

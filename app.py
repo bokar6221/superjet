@@ -5,6 +5,9 @@ from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -12,37 +15,32 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 CHROMIUM_PATH = "/usr/bin/chromium"
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 
-# ✅ تهيئة `Selenium` لاستخدام `Chromium` في `Docker`
+# ✅ تهيئة `Selenium` مع إعدادات محسنة لمنع `tab crashed`
 def init_driver():
     options = Options()
 
-    # ✅ تشغيل `Chromium` بدون واجهة رسومية وتحسين الاستقرار
+    # ✅ تحسين استقرار Chrome في بيئة محدودة الموارد
     options.add_argument("--headless=new")  # استخدام `headless` الجديد
     options.add_argument("--no-sandbox")  # تعطيل `sandbox` لتجنب الأعطال
     options.add_argument("--disable-dev-shm-usage")  # منع استخدام `/dev/shm`
-    options.add_argument("--disable-gpu")  # تعطيل الـ GPU لأنه غير مدعوم في `Railway`
-    options.add_argument("--disable-software-rasterizer")  # منع مشاكل `GPU rasterizer`
+    options.add_argument("--disable-gpu")  # تعطيل `GPU` لتجنب الأعطال في `Docker`
+    options.add_argument("--disable-software-rasterizer")  # تعطيل معالجة `GPU`
+    options.add_argument("--disable-features=VizDisplayCompositor")  # منع العمليات غير المدعومة
     options.add_argument("--disable-blink-features=AutomationControlled")  # إخفاء Selenium عن مواقع الويب
-    options.add_argument("--window-size=1920,1080")  # زيادة حجم النافذة لتجنب مشاكل التصميم
+    options.add_argument("--window-size=1280,1024")  # ضبط حجم النافذة الافتراضي
+    options.add_argument("--remote-debugging-port=9222")  # التصحيح في الخلفية
 
     # ✅ تحديد موقع `Chromium`
-    options.binary_location = "/usr/bin/chromium"
+    options.binary_location = CHROMIUM_PATH
 
     # ✅ تشغيل `ChromeDriver`
-    service = Service("/usr/bin/chromedriver")
+    service = Service(CHROMEDRIVER_PATH)
 
     return webdriver.Chrome(service=service, options=options)
 
 driver = init_driver()
 
-
-# ✅ تشغيل `Selenium` عند بدء السيرفر
-driver = init_driver()
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
+# ✅ دالة تسجيل الدخول
 def do_login():
     """تنفيذ تسجيل الدخول تلقائيًا بعد التأكد من تحميل الصفحة."""
     try:
@@ -67,7 +65,7 @@ def do_login():
         print(f"❌ خطأ في تسجيل الدخول: {str(e)}")
         traceback.print_exc()
 
-# تنفيذ تسجيل الدخول عند بدء السيرفر
+# ✅ تنفيذ تسجيل الدخول عند بدء السيرفر
 do_login()
 
 @app.route('/')

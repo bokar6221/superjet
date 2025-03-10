@@ -5,8 +5,10 @@ import traceback
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+
 # ✅ تعطيل Selenium عند الحاجة لتقليل استهلاك الموارد
 USE_SELENIUM = os.getenv("USE_SELENIUM", "true").lower() == "true"
+
 if USE_SELENIUM:
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service

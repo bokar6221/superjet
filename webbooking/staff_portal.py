@@ -692,7 +692,7 @@ def mobile_booking_operations():
 def mobile_operation(operation_id):
     emp,e=_auth(mobile=True)
     if e:return e
-    op=operation_details(operation_id,emp['employee_id'],_is_manager(emp))
+    op=operation_details(operation_id,emp['employee_id'],_is_manager(emp),allow_shared=True)
     if not op:return jsonify({'ok':False,'error':'OPERATION_NOT_FOUND'}),404
     return jsonify({'ok':True,'operation':op})
 

@@ -608,11 +608,15 @@ def mobile_manager_statistics():
                     text=str(item or '').strip()
                     if text:
                         seats.append(text)
-                return len(set(seats))
+                if seats:
+                    return len(set(seats))
+                continue
             if isinstance(value,dict):
                 for key in ('seats','seat_numbers','selected_seats'):
                     if isinstance(value.get(key),list):
-                        return len({str(x).strip() for x in value[key] if str(x).strip()})
+                        seats=[str(x).strip() for x in value[key] if str(x).strip()]
+                        if seats:
+                            return len(set(seats))
             raw_text=str(candidate or '').strip()
             if raw_text and raw_text not in ('[]','{}','null'):
                 parts=[x.strip() for x in re.split(r'[,،;|/]+',raw_text.strip('[]() ')) if x.strip()]

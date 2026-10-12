@@ -561,6 +561,152 @@ def mobile_dashboard():
     if e:return e
     return jsonify({'ok':True,'dashboard':dashboard(emp['employee_id'],_is_manager(emp)),'employee':{k:emp.get(k) for k in ('employee_id','name','role','shift_name','status')}})
 
+
+@bp.get('/api/mobile/manager-statistics')
+def mobile_manager_statistics():
+    """Manager-only statistics; counts issued tickets and physical seats separately."""
+    emp,e=_auth(mobile=True)
+    if e:return e
+    if not _is_manager(emp):
+        return jsonify({'ok':False,'error':'MANAGER_REQUIRED'}),403
+
+    from datetime import datetime
+    now=datetime.now()
+    day_start=now.replace(hour=0,minute=0,second=0,microsecond=0).timestamp()
+    month_start=now.replace(day=1,hour=0,minute=0,second=0,microsecond=0).timestamp()
+
+    def as_timestamp(value):
+        if value is None:
+            return None
+        if isinstance(value,(int,float)):
+            return float(value)
+        raw=str(value).strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except (TypeError,ValueError):
+            pass
+        try:
+            return datetime.fromisoformat(raw.replace('Z','+00:00')).timestamp()
+        except (TypeError,ValueError):
+            return None
+
+    def seat_count(raw, fallback=''):
+        for candidate in (raw,fallback):
+            if candidate is None:
+                continue
+            try:
+                value=json.loads(candidate if isinstance(candidate,str) else json.dumps(candidate))
+            except Exception:
+                value=None
+            if isinstance(value,list):
+                seats=[]
+                for item in value:
+                    if isinstance(item,dict):
+                        item=item.get('seat_number',item.get('seat',item.get('number','')))
+                    text=str(item or '').strip()
+                    if text:
+                        seats.append(text)
+                return len(set(seats))
+            if isinstance(value,dict):
+                for key in ('seats','seat_numbers','selected_seats'):
+                    if isinstance(value.get(key),list):
+                        return len({str(x).strip() for x in value[key] if str(x).strip()})
+            raw_text=str(candidate or '').strip()
+            if raw_text and raw_text not in ('[]','{}','null'):
+                parts=[x.strip() for x in re.split(r'[,،;|/]+',raw_text.strip('[]() ')) if x.strip()]
+                if len(parts)>1:
+                    return len(set(parts))
+        return 0
+
+    def within(value,start):
+        ts=as_timestamp(value)
+        return ts is not None and (start is None or ts>=start)
+
+    with db() as con:
+        operation_rows=[dict(r) for r in con.execute(
+            "SELECT operation_id,booking_id,employee_id,status,seats_json,created_at,updated_at,rejected_at FROM operations"
+        ).fetchall()]
+        employee_rows=[dict(r) for r in con.execute(
+            "SELECT employee_id,name,role,shift_name,status,active FROM employees ORDER BY role DESC,name"
+        ).fetchall()]
+        try:
+            request_rows=[dict(r) for r in con.execute(
+                "SELECT booking_id,created_at,seats_json FROM booking_requests"
+            ).fetchall()]
+        except Exception:
+            request_rows=[]
+
+    request_seats={str(r.get('booking_id') or ''):r.get('seats_json') or '[]' for r in request_rows}
+    for op in operation_rows:
+        op['_seat_count']=seat_count(op.get('seats_json'),request_seats.get(str(op.get('booking_id') or ''),'[]'))
+        op['_created_ts']=as_timestamp(op.get('created_at'))
+        op['_updated_ts']=as_timestamp(op.get('updated_at'))
+        op['_rejected_ts']=as_timestamp(op.get('rejected_at')) or op['_updated_ts']
+
+    for req in request_rows:
+        req['_created_ts']=as_timestamp(req.get('created_at'))
+
+    def op_stats(rows,start):
+        selected=[r for r in rows if start is None or (r.get('_created_ts') is not None and r['_created_ts']>=start)]
+        issued=[r for r in rows if str(r.get('status') or '').upper()=='TICKET_READY' and (start is None or (r.get('_updated_ts') is not None and r['_updated_ts']>=start))]
+        rejected=[r for r in rows if str(r.get('status') or '').upper()=='PAYMENT_REJECTED' and (start is None or (r.get('_rejected_ts') is not None and r['_rejected_ts']>=start))]
+        return {
+            'booking_operations':len(selected),
+            'issued_tickets':len(issued),
+            'rejected_operations':len(rejected),
+            'requested_seats':sum(int(r.get('_seat_count') or 0) for r in selected),
+            'issued_seats':sum(int(r.get('_seat_count') or 0) for r in issued)
+        }
+
+    def request_count(start):
+        if start is None:
+            return len(request_rows)
+        return sum(1 for r in request_rows if r.get('_created_ts') is not None and r['_created_ts']>=start)
+
+    all_rows=operation_rows
+    summary={}
+    for key,start in (('today',day_start),('month',month_start),('all_time',None)):
+        summary[key]={
+            'booking_requests':request_count(start),
+            **op_stats(all_rows,start)
+        }
+
+    employee_stats=[]
+    for emp_row in employee_rows:
+        eid=str(emp_row.get('employee_id') or '')
+        rows=[r for r in operation_rows if str(r.get('employee_id') or '')==eid]
+        stats={
+            'today':op_stats(rows,day_start),
+            'month':op_stats(rows,month_start),
+            'all_time':op_stats(rows,None)
+        }
+        if int(emp_row.get('active') or 0) or any(v['booking_operations'] for v in stats.values()):
+            employee_stats.append({
+                'employee_id':eid,
+                'name':str(emp_row.get('name') or ''),
+                'role':str(emp_row.get('role') or ''),
+                'shift_name':str(emp_row.get('shift_name') or ''),
+                'status':str(emp_row.get('status') or ''),
+                'active':bool(int(emp_row.get('active') or 0)),
+                **stats
+            })
+
+    return jsonify({
+        'ok':True,
+        'as_of':now.isoformat(timespec='seconds'),
+        'counting_rules':{
+            'booking_requests':'Rows in booking_requests by created_at; includes requests not represented as employee operations.',
+            'booking_operations':'Rows in operations by created_at; one operation can contain multiple seats.',
+            'issued_tickets':'Operations whose status is TICKET_READY; one operation/ticket can contain multiple seats.',
+            'issued_seats':'Unique seat identifiers in TICKET_READY operations, by updated_at.',
+            'rejected_operations':'Operations in PAYMENT_REJECTED, by rejected_at (or updated_at when unavailable).'
+        },
+        'summary':summary,
+        'employees':employee_stats
+    })
+
 @bp.get('/api/mobile/alerts')
 def mobile_alerts():
     emp,e=_auth(mobile=True)
